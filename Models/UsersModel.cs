@@ -1,4 +1,6 @@
-﻿namespace Task4.UserManagement.Models;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Task4.UserManagement.Models;
 public enum AccountStatus
 {
     Unverified,
@@ -6,10 +8,12 @@ public enum AccountStatus
     Blocked
 }
 
-public class User
+public class UserModel
 {
     public int Id  { get; set; }
     public string Name { get; set; }
+    
+    [EmailAddress]
     public string Email  { get; set; }
     public string PasswordHash  { get; set; }
     public DateTime LastActive  { get; set; }
