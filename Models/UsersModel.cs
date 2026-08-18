@@ -8,7 +8,7 @@ public enum AccountStatus
     Blocked
 }
 
-public class UserModel
+public class UsersModel
 {
     public int Id  { get; set; }
     public string Name { get; set; }
