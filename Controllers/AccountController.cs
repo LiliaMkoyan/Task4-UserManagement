@@ -2,22 +2,24 @@
         using Microsoft.AspNetCore.Identity;
         using Task4.UserManagement.Data;
         using Task4.UserManagement.Models;
-        using System.Linq;
         using System.Security.Claims;
         using Microsoft.AspNetCore.Authentication;
         using Microsoft.AspNetCore.Authentication.Cookies;
         using Microsoft.EntityFrameworkCore;
+        using Task4.UserManagement.Services;
 
         namespace Task4.UserManagement.Controllers;
 
         public class AccountController : Controller
         {
-            public AccountController(ApplicationDbContext context)
+            public AccountController(ApplicationDbContext context, EmailService emailService)
             {
                 _dbContext = context;
+                _emailService = emailService;
             }
             private readonly ApplicationDbContext _dbContext;
             private readonly PasswordHasher<UsersModel>  _passwordHasher = new PasswordHasher<UsersModel>();
+            private readonly EmailService _emailService;
             
             [HttpGet]
             public IActionResult Login()
@@ -110,6 +112,7 @@
                 
                 _dbContext.Users.Add(record);
                 await _dbContext.SaveChangesAsync();
+                _ = _emailService.SendEmailAsync(record.Email, "https://localhost:5201/Account/ConfirmEmail?email=" + record.Email);
                 TempData["SuccessMessage"] = "Registration Successful!";
                 return RedirectToAction("Login");
             }
