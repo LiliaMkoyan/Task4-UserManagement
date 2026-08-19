@@ -1,0 +1,199 @@
+@using Task4.UserManagement.Models
+@model List<UsersModel>
+
+<div id="statusMessage"></div>
+<div class="toolbar mb-3">
+    <button type="button" class="btn btn-primary" id="blockBtn">🔒 Block</button>
+    <button type="button" class="btn btn-secondary" id="unblockBtn" title="Unblock">🔓</button>
+    <button type="button" class="btn btn-danger" id="deleteBtn" title="Delete">🗑️</button>
+    <button type="button" class="btn btn-warning" id="deleteUnverifiedBtn" title="Delete Unverified">🚫</button>
+</div>
+<input type="text" class="form-control mb-2" style="max-width: 250px;" placeholder="Filter" id="filterInput" />
+<table class="table table-hover align-middle">
+    <thead>
+    <tr>
+        <th><input type="checkbox" id="selectAll" /></th>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Status</th>
+        <th>Last Active</th>
+    </tr>
+    </thead>
+    <tbody>
+    @foreach (var user in Model)
+    {
+        <tr>
+            <td><input type="checkbox" class="row-checkbox" value="@user.Id" /></td>
+            <td>@user.Name</td>
+            <td>@user.Email</td>
+            <td>@user.Status</td>
+            <td>@user.LastActive</td>
+        </tr>
+    }
+    </tbody>
+</table>
+<script>
+    var selectAll = document.getElementById('selectAll');
+    var blockBtn = document.getElementById('blockBtn');
+    var unblockBtn = document.getElementById('unblockBtn');
+    var deleteBtn = document.getElementById('deleteBtn');
+    var deleteUnverifiedBtn = document.getElementById('deleteUnverifiedBtn');
+
+    function getSelectedIds() {
+        return Array.from(document.querySelectorAll('.row-checkbox:checked'))
+            .map(function (checkbox) { return getUniqIdValue(checkbox); });
+    }
+
+    function getUniqIdValue(checkbox) {
+        return parseInt(checkbox.value);
+    }
+
+    function updateToolbar() {
+        var selectedIds = getSelectedIds();
+        var hasSelection = selectedIds.length > 0;
+
+        blockBtn.disabled = !hasSelection;
+        unblockBtn.disabled = !hasSelection;
+        deleteBtn.disabled = !hasSelection;
+    }
+
+    function showStatusMessage(message, isSuccess) {
+        var statusMessage = document.getElementById('statusMessage');
+
+        statusMessage.className = isSuccess
+            ? 'alert alert-success'
+            : 'alert alert-danger';
+
+        statusMessage.textContent = message;
+    }
+
+    selectAll.addEventListener('change', function () {
+        var checkboxes = document.querySelectorAll('.row-checkbox');
+
+        checkboxes.forEach(function (checkbox) {
+            checkbox.checked = selectAll.checked;
+        });
+
+        updateToolbar();
+    });
+
+    document.querySelectorAll('.row-checkbox').forEach(function (checkbox) {
+        checkbox.addEventListener('change', function () {
+            var checkboxes = document.querySelectorAll('.row-checkbox');
+            var checkedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+
+            selectAll.checked = checkboxes.length > 0 &&
+                checkedCheckboxes.length === checkboxes.length;
+
+            updateToolbar();
+        });
+    });
+
+    blockBtn.addEventListener('click', function () {
+        var selectedIds = getSelectedIds();
+
+        if (selectedIds.length === 0) return;
+
+        fetch('/User/Block', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(selectedIds)
+        }).then(async function (response) {
+            var data = await response.json();
+
+            if (response.ok) {
+                showStatusMessage(data.message, true);
+                setTimeout(function () {
+                    location.reload();
+                }, 500);
+            } else {
+                showStatusMessage(data.message || 'Failed to block users.', false);
+            }
+        })
+            .catch(function () {
+                showStatusMessage('Failed to block users.', false);
+            });
+    });
+
+    unblockBtn.addEventListener('click', function () {
+        var selectedIds = getSelectedIds();
+
+        if (selectedIds.length === 0) return;
+
+        fetch('/User/Unblock', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(selectedIds)
+        }).then(async function (response) {
+            var data = await response.json();
+
+            if (response.ok) {
+                showStatusMessage(data.message, true);
+                setTimeout(function () {
+                    location.reload();
+                }, 500);
+            } else {
+                showStatusMessage(data.message || 'Failed to unblock users.', false);
+            }
+        })
+            .catch(function () {
+                showStatusMessage('Failed to unblock users.', false);
+            });
+    });
+
+    deleteBtn.addEventListener('click', function () {
+        var selectedIds = getSelectedIds();
+
+        if (selectedIds.length === 0) return;
+
+        fetch('/User/Delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(selectedIds)
+        }).then(async function (response) {
+            var data = await response.json();
+
+            if (response.ok) {
+                showStatusMessage(data.message, true);
+                setTimeout(function () {
+                    location.reload();
+                }, 500);
+            } else {
+                showStatusMessage(data.message || 'Failed to delete users.', false);
+            }
+        })
+            .catch(function () {
+                showStatusMessage('Failed to delete users.', false);
+            });
+    });
+
+    deleteUnverifiedBtn.addEventListener('click', function () {
+        fetch('/User/DeleteUnverified', {
+            method: 'POST'
+        }).then(async function (response) {
+            var data = await response.json();
+
+            if (response.ok) {
+                showStatusMessage(data.message, true);
+                setTimeout(function () {
+                    location.reload();
+                }, 500);
+            } else {
+                showStatusMessage(data.message || 'Failed to delete unverified users.', false);
+            }
+        })
+            .catch(function () {
+                showStatusMessage('Failed to delete unverified users.', false);
+            });
+    });
+
+    document.getElementById('filterInput').addEventListener('input', function () {
+        var filter = this.value.toLowerCase();
+
+        document.querySelectorAll('tbody tr').forEach(function (row) {
+            row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
+        });
+    });
+
+    updateToolbar();
+</script>
