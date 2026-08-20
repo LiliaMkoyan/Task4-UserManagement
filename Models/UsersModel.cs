@@ -18,4 +18,5 @@ public class UsersModel
     public DateTime LastActive  { get; set; }
     public DateTime RegisteredTime  { get; set; }
     public AccountStatus Status { get; set; }
+    public Guid ConfirmationToken { get; set; }
 }

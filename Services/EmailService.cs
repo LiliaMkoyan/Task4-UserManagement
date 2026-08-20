@@ -1,6 +1,4 @@
-﻿using System.Net.Mail;
-using MimeKit;
-using MailKit.Net.Smtp;
+﻿using MimeKit;
 using MailKit.Security;
 using SmtpClient = MailKit.Net.Smtp.SmtpClient;
 

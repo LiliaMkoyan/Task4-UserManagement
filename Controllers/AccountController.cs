@@ -68,13 +68,29 @@
                     ModelState.AddModelError(string.Empty, "Blocked");
                     return View(model);
                 }
+                
+                if (user.Status == AccountStatus.Unverified)
+                {
+                    ModelState.AddModelError(string.Empty, "Please confirm your email before logging in.");
+                    return View(model);
+                }
 
+                user.LastActive = DateTime.UtcNow;
+                await _dbContext.SaveChangesAsync();
                 var name = new Claim(ClaimTypes.Name, user.Name);
                 var email = new Claim(ClaimTypes.Email, user.Email);
                 var claims = new List<Claim> { name,  email };
                 var identity = new ClaimsIdentity(claims,  CookieAuthenticationDefaults.AuthenticationScheme);
                 var principal = new ClaimsPrincipal(identity);
-                await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+                var authenticationProperties = new AuthenticationProperties
+                {
+                    IsPersistent = model.RememberMe
+                };
+
+                await HttpContext.SignInAsync(
+                    CookieAuthenticationDefaults.AuthenticationScheme,
+                    principal,
+                    authenticationProperties);
                 return RedirectToAction("Index", "Home");
             }
             
@@ -107,13 +123,57 @@
                     PasswordHash = hashedPassword,
                     Status = AccountStatus.Unverified,
                     LastActive = DateTime.UtcNow,
-                    RegisteredTime = DateTime.UtcNow
+                    RegisteredTime = DateTime.UtcNow,
+                    ConfirmationToken = Guid.NewGuid(),
                 };
                 
                 _dbContext.Users.Add(record);
-                await _dbContext.SaveChangesAsync();
-                _ = _emailService.SendEmailAsync(record.Email, "https://localhost:5201/Account/ConfirmEmail?email=" + record.Email);
+                
+                try
+                {
+                    await _dbContext.SaveChangesAsync();
+                }
+                catch (DbUpdateException)
+                {
+                    ModelState.AddModelError(string.Empty, "This email is already registered.");
+                    return View(model);
+                }
+                
+                var confirmationLink = Url.Action(
+                    "ConfirmEmail",
+                    "Account",
+                    new { token = record.ConfirmationToken },
+                    Request.Scheme);
+
+                await _emailService.SendEmailAsync(record.Email, confirmationLink!);
                 TempData["SuccessMessage"] = "Registration Successful!";
+                return RedirectToAction("Login");
+            }
+
+            [HttpGet]
+            public async Task<IActionResult> ConfirmEmail(Guid token)
+            {
+                var user = await (
+                        from u in _dbContext.Users
+                        where u.ConfirmationToken == token
+                        select u)
+                    .FirstOrDefaultAsync();
+
+                if (user == null)
+                {
+                    TempData["ErrorMessage"] = "This confirmation link is invalid or has expired.";
+                    return RedirectToAction("Login");
+                }
+
+                if (user.Status == AccountStatus.Blocked)
+                {
+                    TempData["ErrorMessage"] = "Your account has been blocked and cannot be verified.";
+                    return RedirectToAction("Login");
+                }
+
+                user.Status = AccountStatus.Active;
+                await _dbContext.SaveChangesAsync();
+                TempData["SuccessMessage"] = "Verification Successful!";
                 return RedirectToAction("Login");
             }
         }
