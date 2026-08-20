@@ -20,3 +20,6 @@ TestResults/
 Thumbs.db
 
 appsettings.json
+
+publish/
+publish-x86/

@@ -8,24 +8,41 @@ html {
   }
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
-}
-
 body {
-  margin-bottom: 60px;
+  min-height: 100vh;
 }
 
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-  color: var(--bs-secondary-color);
-  text-align: end;
+.auth-card {
+  max-width: 420px;
 }
 
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
-  text-align: start;
+.users-toolbar {
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-bottom: 0;
+  padding: 0.5rem 0.75rem;
+}
+
+.users-table-wrap {
+  background: #fff;
+  border: 1px solid #dee2e6;
+}
+
+.users-table th,
+.users-table td {
+  vertical-align: middle;
+}
+
+.users-table .col-select {
+  width: 2.5rem;
+  text-align: center;
+}
+
+.users-table .col-status {
+  text-align: center;
+}
+
+.users-table .col-time {
+  text-align: right;
+  white-space: nowrap;
 }

@@ -31,7 +31,7 @@ public class UserStatusMiddleware
             if (user == null || user.Status == AccountStatus.Blocked)
             {
                 await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-                context.Response.Redirect("/Account/Login");
+                context.Response.Redirect($"{context.Request.PathBase}/Account/Login");
                 return;
             }
         }

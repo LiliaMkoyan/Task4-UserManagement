@@ -69,14 +69,9 @@
                     return View(model);
                 }
                 
-                if (user.Status == AccountStatus.Unverified)
-                {
-                    ModelState.AddModelError(string.Empty, "Please confirm your email before logging in.");
-                    return View(model);
-                }
-
                 user.LastActive = DateTime.UtcNow;
                 await _dbContext.SaveChangesAsync();
+                
                 var name = new Claim(ClaimTypes.Name, user.Name);
                 var email = new Claim(ClaimTypes.Email, user.Email);
                 var claims = new List<Claim> { name,  email };
@@ -91,7 +86,7 @@
                     CookieAuthenticationDefaults.AuthenticationScheme,
                     principal,
                     authenticationProperties);
-                return RedirectToAction("Index", "Home");
+                return RedirectToAction("Index", "User");
             }
             
             [HttpPost]
@@ -174,6 +169,13 @@
                 user.Status = AccountStatus.Active;
                 await _dbContext.SaveChangesAsync();
                 TempData["SuccessMessage"] = "Verification Successful!";
+                return RedirectToAction("Login");
+            }
+
+            [HttpGet]
+            public async Task<IActionResult> Logout()
+            {
+                await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
                 return RedirectToAction("Login");
             }
         }

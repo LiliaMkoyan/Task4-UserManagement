@@ -12,7 +12,7 @@ using Task4.UserManagement.Data;
 namespace Task4.UserManagement.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260820060633_AddConfirmationToken")]
+    [Migration("20260820064703_AddConfirmationToken")]
     partial class AddConfirmationToken
     {
         /// <inheritdoc />

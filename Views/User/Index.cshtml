@@ -1,43 +1,90 @@
 @using Task4.UserManagement.Models
 @model List<UsersModel>
+@{
+    ViewData["Title"] = "Users";
+}
+
+<h1 class="h4 mb-3">Users</h1>
 
 <div id="statusMessage"></div>
-<div class="toolbar mb-3">
-    <button type="button" class="btn btn-primary" id="blockBtn">🔒 Block</button>
-    <button type="button" class="btn btn-secondary" id="unblockBtn" title="Unblock">🔓</button>
-    <button type="button" class="btn btn-danger" id="deleteBtn" title="Delete">🗑️</button>
-    <button type="button" class="btn btn-warning" id="deleteUnverifiedBtn" title="Delete Unverified">🚫</button>
+
+<div class="users-toolbar d-flex flex-wrap align-items-center gap-2">
+    <div class="btn-toolbar" role="toolbar" aria-label="User actions">
+        <div class="btn-group me-2" role="group">
+            <button type="button" class="btn btn-outline-secondary" id="blockBtn" title="Block selected users" data-bs-toggle="tooltip">
+                Block
+            </button>
+            <button type="button" class="btn btn-outline-secondary" id="unblockBtn" title="Unblock selected users" data-bs-toggle="tooltip">
+                <i class="bi bi-unlock" aria-hidden="true"></i>
+                <span class="visually-hidden">Unblock</span>
+            </button>
+            <button type="button" class="btn btn-outline-secondary" id="deleteBtn" title="Delete selected users" data-bs-toggle="tooltip">
+                <i class="bi bi-trash" aria-hidden="true"></i>
+                <span class="visually-hidden">Delete</span>
+            </button>
+            <button type="button" class="btn btn-outline-secondary" id="deleteUnverifiedBtn" title="Delete unverified users" data-bs-toggle="tooltip">
+                <i class="bi bi-person-x" aria-hidden="true"></i>
+                <span class="visually-hidden">Delete unverified</span>
+            </button>
+        </div>
+    </div>
+    <input type="text" class="form-control form-control-sm ms-auto" style="max-width: 220px;" placeholder="Filter" id="filterInput" title="Filter users" />
 </div>
-<input type="text" class="form-control mb-2" style="max-width: 250px;" placeholder="Filter" id="filterInput" />
-<table class="table table-hover align-middle">
-    <thead>
-    <tr>
-        <th><input type="checkbox" id="selectAll" /></th>
-        <th>Name</th>
-        <th>Email</th>
-        <th>Status</th>
-        <th>Last Active</th>
-    </tr>
-    </thead>
-    <tbody>
-    @foreach (var user in Model)
-    {
-        <tr>
-            <td><input type="checkbox" class="row-checkbox" value="@user.Id" /></td>
-            <td>@user.Name</td>
-            <td>@user.Email</td>
-            <td>@user.Status</td>
-            <td>@user.LastActive</td>
-        </tr>
-    }
-    </tbody>
-</table>
+
+<div class="table-responsive users-table-wrap">
+    <table class="table table-sm table-hover table-bordered mb-0 users-table">
+        <thead class="table-light">
+            <tr>
+                <th class="col-select">
+                    <input type="checkbox" id="selectAll" title="Select all" />
+                </th>
+                <th>Name</th>
+                <th>E-mail</th>
+                <th class="col-status">Status</th>
+                <th class="col-time">Last login</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var user in Model)
+        {
+            <tr>
+                <td class="col-select">
+                    <input type="checkbox" class="row-checkbox" value="@user.Id" />
+                </td>
+                <td>@user.Name</td>
+                <td>@user.Email</td>
+                <td class="col-status">
+                    @if (user.Status == AccountStatus.Active)
+                    {
+                        <span class="badge text-bg-success">Active</span>
+                    }
+                    else if (user.Status == AccountStatus.Blocked)
+                    {
+                        <span class="badge text-bg-secondary">Blocked</span>
+                    }
+                    else
+                    {
+                        <span class="badge text-bg-warning">Unverified</span>
+                    }
+                </td>
+                <td class="col-time">@user.LastActive.ToString("yyyy-MM-dd HH:mm")</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+@section Scripts {
 <script>
     var selectAll = document.getElementById('selectAll');
     var blockBtn = document.getElementById('blockBtn');
     var unblockBtn = document.getElementById('unblockBtn');
     var deleteBtn = document.getElementById('deleteBtn');
     var deleteUnverifiedBtn = document.getElementById('deleteUnverifiedBtn');
+    var blockUrl = '@Url.Action("Block", "User")';
+    var unblockUrl = '@Url.Action("Unblock", "User")';
+    var deleteUrl = '@Url.Action("Delete", "User")';
+    var deleteUnverifiedUrl = '@Url.Action("DeleteUnverified", "User")';
 
     function getSelectedIds() {
         return Array.from(document.querySelectorAll('.row-checkbox:checked'))
@@ -49,9 +96,7 @@
     }
 
     function updateToolbar() {
-        var selectedIds = getSelectedIds();
-        var hasSelection = selectedIds.length > 0;
-
+        var hasSelection = getSelectedIds().length > 0;
         blockBtn.disabled = !hasSelection;
         unblockBtn.disabled = !hasSelection;
         deleteBtn.disabled = !hasSelection;
@@ -59,21 +104,26 @@
 
     function showStatusMessage(message, isSuccess) {
         var statusMessage = document.getElementById('statusMessage');
-
-        statusMessage.className = isSuccess
-            ? 'alert alert-success'
-            : 'alert alert-danger';
-
+        statusMessage.className = isSuccess ? 'alert alert-success' : 'alert alert-danger';
         statusMessage.textContent = message;
     }
 
-    selectAll.addEventListener('change', function () {
-        var checkboxes = document.querySelectorAll('.row-checkbox');
+    function postJson(url, body) {
+        return fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: body === undefined ? undefined : JSON.stringify(body)
+        }).then(async function (response) {
+            var data = {};
+            try { data = await response.json(); } catch (e) { data = {}; }
+            return { ok: response.ok, data: data };
+        });
+    }
 
-        checkboxes.forEach(function (checkbox) {
+    selectAll.addEventListener('change', function () {
+        document.querySelectorAll('.row-checkbox').forEach(function (checkbox) {
             checkbox.checked = selectAll.checked;
         });
-
         updateToolbar();
     });
 
@@ -81,119 +131,81 @@
         checkbox.addEventListener('change', function () {
             var checkboxes = document.querySelectorAll('.row-checkbox');
             var checkedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
-
             selectAll.checked = checkboxes.length > 0 &&
                 checkedCheckboxes.length === checkboxes.length;
-
             updateToolbar();
         });
     });
 
     blockBtn.addEventListener('click', function () {
         var selectedIds = getSelectedIds();
-
         if (selectedIds.length === 0) return;
-
-        fetch('/User/Block', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(selectedIds)
-        }).then(async function (response) {
-            var data = await response.json();
-
-            if (response.ok) {
-                showStatusMessage(data.message, true);
-                setTimeout(function () {
-                    location.reload();
-                }, 500);
+        postJson(blockUrl, selectedIds).then(function (result) {
+            if (result.ok) {
+                showStatusMessage(result.data.message, true);
+                setTimeout(function () { location.reload(); }, 500);
             } else {
-                showStatusMessage(data.message || 'Failed to block users.', false);
+                showStatusMessage(result.data.message || 'Failed to block users.', false);
             }
-        })
-            .catch(function () {
-                showStatusMessage('Failed to block users.', false);
-            });
+        }).catch(function () {
+            showStatusMessage('Failed to block users.', false);
+        });
     });
 
     unblockBtn.addEventListener('click', function () {
         var selectedIds = getSelectedIds();
-
         if (selectedIds.length === 0) return;
-
-        fetch('/User/Unblock', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(selectedIds)
-        }).then(async function (response) {
-            var data = await response.json();
-
-            if (response.ok) {
-                showStatusMessage(data.message, true);
-                setTimeout(function () {
-                    location.reload();
-                }, 500);
+        postJson(unblockUrl, selectedIds).then(function (result) {
+            if (result.ok) {
+                showStatusMessage(result.data.message, true);
+                setTimeout(function () { location.reload(); }, 500);
             } else {
-                showStatusMessage(data.message || 'Failed to unblock users.', false);
+                showStatusMessage(result.data.message || 'Failed to unblock users.', false);
             }
-        })
-            .catch(function () {
-                showStatusMessage('Failed to unblock users.', false);
-            });
+        }).catch(function () {
+            showStatusMessage('Failed to unblock users.', false);
+        });
     });
 
     deleteBtn.addEventListener('click', function () {
         var selectedIds = getSelectedIds();
-
         if (selectedIds.length === 0) return;
-
-        fetch('/User/Delete', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(selectedIds)
-        }).then(async function (response) {
-            var data = await response.json();
-
-            if (response.ok) {
-                showStatusMessage(data.message, true);
-                setTimeout(function () {
-                    location.reload();
-                }, 500);
+        postJson(deleteUrl, selectedIds).then(function (result) {
+            if (result.ok) {
+                showStatusMessage(result.data.message, true);
+                setTimeout(function () { location.reload(); }, 500);
             } else {
-                showStatusMessage(data.message || 'Failed to delete users.', false);
+                showStatusMessage(result.data.message || 'Failed to delete users.', false);
             }
-        })
-            .catch(function () {
-                showStatusMessage('Failed to delete users.', false);
-            });
+        }).catch(function () {
+            showStatusMessage('Failed to delete users.', false);
+        });
     });
 
     deleteUnverifiedBtn.addEventListener('click', function () {
-        fetch('/User/DeleteUnverified', {
-            method: 'POST'
-        }).then(async function (response) {
-            var data = await response.json();
-
-            if (response.ok) {
-                showStatusMessage(data.message, true);
-                setTimeout(function () {
-                    location.reload();
-                }, 500);
+        postJson(deleteUnverifiedUrl).then(function (result) {
+            if (result.ok) {
+                showStatusMessage(result.data.message, true);
+                setTimeout(function () { location.reload(); }, 500);
             } else {
-                showStatusMessage(data.message || 'Failed to delete unverified users.', false);
+                showStatusMessage(result.data.message || 'Failed to delete unverified users.', false);
             }
-        })
-            .catch(function () {
-                showStatusMessage('Failed to delete unverified users.', false);
-            });
+        }).catch(function () {
+            showStatusMessage('Failed to delete unverified users.', false);
+        });
     });
 
     document.getElementById('filterInput').addEventListener('input', function () {
         var filter = this.value.toLowerCase();
-
         document.querySelectorAll('tbody tr').forEach(function (row) {
             row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
         });
     });
 
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+        new bootstrap.Tooltip(el);
+    });
+
     updateToolbar();
 </script>
+}
